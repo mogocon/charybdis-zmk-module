@@ -100,24 +100,7 @@ jobs:
             cp "config/charybdis.keymap" "config/splinky_v3.keymap"
           fi
           
-          # Verify shield files exist
-          for file in "config/boards/shields/splinky_v2/splinky_v2.dtsi" \
-                     "config/boards/shields/splinky_v2/splinky_v2_left.overlay" \
-                     "config/boards/shields/splinky_v2/splinky_v2_right.overlay" \
-                     "config/boards/shields/splinky_v2/Kconfig.defconfig" \
-                     "config/boards/shields/splinky_v2/Kconfig.shield" \
-                     "config/boards/shields/splinky_v3/splinky_v3.dtsi" \
-                     "config/boards/shields/splinky_v3/splinky_v3_left.overlay" \
-                     "config/boards/shields/splinky_v3/splinky_v3_right.overlay" \
-                     "config/boards/shields/splinky_v3/Kconfig.defconfig" \
-                     "config/boards/shields/splinky_v3/Kconfig.shield"; do
-            if [ ! -f "$file" ]; then
-              echo "ERROR: Required file $file is missing!"
-              echo "Please add the file to your repository."
-            fi
-          done
-          
-          # List shields files that were found
+          # Check shield files
           echo "Shield files found:"
           find config/boards/shields -type f | sort
           
@@ -129,56 +112,4 @@ jobs:
           
           # Check if update failed and use direct clone as a fallback
           if [ ! -d "zmk" ]; then
-            echo "West update failed, trying direct clone..."
-            mkdir -p zmk
-            cd zmk
-            git init
-            git remote add origin https://github.com/perillamint/zmk.git
-            git fetch --depth 1 origin charybdis-pmw3610
-            git checkout FETCH_HEAD
-            cd ..
-          fi
-          
-      - name: West Zephyr export
-        run: west zephyr-export
-        
-      - name: West Build (${{ matrix.board }} - ${{ matrix.shield }})
-        run: west build -s zmk/app -b ${{ matrix.board }} -- -DSHIELD=${{ matrix.shield }} -DZMK_CONFIG="${GITHUB_WORKSPACE}/config"
-        
-      - name: Check Build Result
-        id: check_build
-        run: |
-          if [ -f "build/zephyr/zmk.uf2" ]; then
-            echo "success=true" >> $GITHUB_OUTPUT
-          else
-            echo "success=false" >> $GITHUB_OUTPUT
-          fi
-          
-      - name: Rename artifacts
-        if: ${{ steps.check_build.outputs.success == 'true' && matrix.shield != 'settings_reset' }}
-        run: |
-          mkdir -p artifacts
-          cp build/zephyr/zmk.uf2 "artifacts/${{ matrix.shield }}.uf2"
-          
-      - name: Rename artifacts (settings_reset)
-        if: ${{ steps.check_build.outputs.success == 'true' && matrix.shield == 'settings_reset' }}
-        run: |
-          mkdir -p artifacts
-          cp build/zephyr/zmk.uf2 "artifacts/settings_reset.uf2"
-          
-      - name: Archive firmware
-        if: ${{ steps.check_build.outputs.success == 'true' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: firmware
-          path: artifacts/*.uf2
-          
-      - name: Archive Build Logs on Failure
-        if: ${{ steps.check_build.outputs.success == 'false' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-logs-${{ matrix.shield }}
-          path: |
-            build/zephyr/*.log
-            build/CMakeFiles/CMakeError.log
-            build/CMakeFiles/CMakeOutput.log
+            echo "West update failed, trying
