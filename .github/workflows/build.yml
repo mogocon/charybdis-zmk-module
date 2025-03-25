@@ -78,52 +78,54 @@ jobs:
             cp "config/Kconfig.shield" "config/boards/shields/splinky_v2/Kconfig.shield"
           fi
           
+          # Copy for v3 as well
+          for file in config/boards/shields/splinky_v2/*; do
+            base_name=$(basename "$file")
+            new_name="${base_name/splinky_v2/splinky_v3}"
+            cp "$file" "config/boards/shields/splinky_v3/${new_name}"
+          done
+          
           # Copy keymap files if needed
           if [ -f "config/charybdis.keymap" ]; then
             cp "config/charybdis.keymap" "config/splinky_v2.keymap"
             cp "config/charybdis.keymap" "config/splinky_v3.keymap"
           fi
           
+          # Modify west.yml to use the official ZMK repository instead
+          echo 'manifest:' > config/west.yml
+          echo '  remotes:' >> config/west.yml
+          echo '    - name: zmkfirmware' >> config/west.yml
+          echo '      url-base: https://github.com/zmkfirmware' >> config/west.yml
+          echo '  projects:' >> config/west.yml
+          echo '    - name: zmk' >> config/west.yml
+          echo '      remote: zmkfirmware' >> config/west.yml
+          echo '      revision: main' >> config/west.yml
+          echo '      import: app/west.yml' >> config/west.yml
+          echo '  self:' >> config/west.yml
+          echo '    path: config' >> config/west.yml
+          
           # List shield files
           echo "Shield files found:"
           find config/boards/shields -type f | sort
           
-      - name: Manually Download ZMK
+          # Show the modified west.yml
+          echo "Modified west.yml:"
+          cat config/west.yml
+          
+      - name: West Init & Update
         run: |
-          # Download the ZIP file directly using wget
-          wget https://github.com/perillamint/zmk/archive/refs/heads/charybdis-pmw3610.zip -O zmk.zip
-          
-          # Extract the ZIP file
-          unzip zmk.zip
-          
-          # Rename the extracted folder to 'zmk'
-          mv zmk-charybdis-pmw3610 zmk
-          
-          # Check the contents
-          ls -la zmk
-          
-      - name: West Setup
-        run: |
-          # Initialize west with an empty manifest for zephyr dependencies
-          mkdir -p zmk/app
-          cd zmk
-          west init -l app
-          
-          # Update west to fetch dependencies
+          west init -l config
           west update
           
       - name: Build Firmware
         run: |
-          # Configure build environment
-          cd zmk
-          
           # Build firmware
-          west build -p auto -b ${{ matrix.board }} app -- -DSHIELD=${{ matrix.shield }} -DZMK_CONFIG="${GITHUB_WORKSPACE}/config"
+          west build -p auto -b ${{ matrix.board }} -- -DSHIELD=${{ matrix.shield }} -DZMK_CONFIG="${GITHUB_WORKSPACE}/config"
           
           # Check build result
           if [ -f "build/zephyr/zmk.uf2" ]; then
-            mkdir -p "${GITHUB_WORKSPACE}/artifacts"
-            cp build/zephyr/zmk.uf2 "${GITHUB_WORKSPACE}/artifacts/${{ matrix.shield }}.uf2"
+            mkdir -p artifacts
+            cp build/zephyr/zmk.uf2 "artifacts/${{ matrix.shield }}.uf2"
             echo "Build successful for ${{ matrix.shield }}"
           else
             echo "Build failed for ${{ matrix.shield }}"
@@ -143,6 +145,6 @@ jobs:
         with:
           name: build-logs-${{ matrix.shield }}
           path: |
-            zmk/build/zephyr/*.log
-            zmk/build/CMakeFiles/CMakeError.log
-            zmk/build/CMakeFiles/CMakeOutput.log
+            build/zephyr/*.log
+            build/CMakeFiles/CMakeError.log
+            build/CMakeFiles/CMakeOutput.log
