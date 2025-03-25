@@ -100,16 +100,47 @@ jobs:
             cp "config/charybdis.keymap" "config/splinky_v3.keymap"
           fi
           
-          # Check shield files
+          # List shield files
           echo "Shield files found:"
           find config/boards/shields -type f | sort
           
-      - name: West Update
+      - name: Clone ZMK Repository
         run: |
-          # Set environment variable to prevent authentication prompt
-          export GIT_TERMINAL_PROMPT=0
-          west update -o=--depth=1 || true
+          # Direct clone instead of west update to avoid authentication issues
+          git clone --single-branch --branch charybdis-pmw3610 --depth 1 https://github.com/perillamint/zmk.git
           
-          # Check if update failed and use direct clone as a fallback
-          if [ ! -d "zmk" ]; then
-            echo "West update failed, trying
+      - name: West Build (${{ matrix.board }} - ${{ matrix.shield }})
+        run: |
+          # Set ZMK_CONFIG environment variable
+          export ZMK_CONFIG="${GITHUB_WORKSPACE}/config"
+          cd zmk
+          west init -l app
+          west update
+          cd app
+          west build -b ${{ matrix.board }} -- -DSHIELD=${{ matrix.shield }} -DZMK_CONFIG="${GITHUB_WORKSPACE}/config"
+          
+          # Check and move build artifacts
+          if [ -f "build/zephyr/zmk.uf2" ]; then
+            mkdir -p "${GITHUB_WORKSPACE}/artifacts"
+            cp build/zephyr/zmk.uf2 "${GITHUB_WORKSPACE}/artifacts/${{ matrix.shield }}.uf2"
+            echo "Build successful for ${{ matrix.shield }}"
+          else
+            echo "Build failed for ${{ matrix.shield }}"
+            exit 1
+          fi
+          
+      - name: Archive firmware
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: artifacts/*.uf2
+          
+      - name: Archive Build Logs on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-${{ matrix.shield }}
+          path: |
+            zmk/app/build/zephyr/*.log
+            zmk/app/build/CMakeFiles/CMakeError.log
+            zmk/app/build/CMakeFiles/CMakeOutput.log
