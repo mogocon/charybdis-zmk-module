@@ -1,0 +1,20 @@
+# splinky_v3/Kconfig.defconfig
+# Copyright (c) 2022 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+if SHIELD_SPLINKY_V3_LEFT
+
+config ZMK_KEYBOARD_NAME
+	default "Charybdis v3"
+
+config ZMK_SPLIT_ROLE_CENTRAL
+	default y
+
+endif
+
+if SHIELD_SPLINKY_V3_LEFT || SHIELD_SPLINKY_V3_RIGHT
+
+config ZMK_SPLIT
+	default y
+
+endif

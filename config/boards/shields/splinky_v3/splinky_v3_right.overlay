@@ -1,0 +1,23 @@
+/*
+ * Copyright (c) 2022 The ZMK Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+#include "splinky_v3.dtsi"
+
+&kscan0 {
+    col-gpios
+        = <&gpio0 8  GPIO_ACTIVE_HIGH>
+        , <&gpio0 6  GPIO_ACTIVE_HIGH>
+        , <&gpio0 12 GPIO_ACTIVE_HIGH>
+        , <&gpio0 13 GPIO_ACTIVE_HIGH>
+        , <&gpio0 9  GPIO_ACTIVE_HIGH>
+        , <&gpio0 10 GPIO_ACTIVE_HIGH>
+        , <&gpio0 11 GPIO_ACTIVE_HIGH>
+        ;
+};
+
+&splinky_transform_v3 {
+    col-offset = <6>;
+};
