@@ -119,8 +119,12 @@ jobs:
           
       - name: Build Firmware
         run: |
-          # Build firmware
-          west build -p auto -b ${{ matrix.board }} -- -DSHIELD=${{ matrix.shield }} -DZMK_CONFIG="${GITHUB_WORKSPACE}/config"
+          # Get list of directories to see what we have
+          echo "Current directory structure:"
+          ls -la
+          
+          # Build firmware with correct path to app directory
+          west build -s zmk/app -p auto -b ${{ matrix.board }} -- -DSHIELD=${{ matrix.shield }} -DZMK_CONFIG="${GITHUB_WORKSPACE}/config"
           
           # Check build result
           if [ -f "build/zephyr/zmk.uf2" ]; then
