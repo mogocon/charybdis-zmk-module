@@ -42,84 +42,73 @@ jobs:
         with:
           fetch-depth: 0
           
-      - name: Cache west modules
-        uses: actions/cache@v4
-        env:
-          cache-name: cache-zephyr-modules
-        with:
-          path: |
-            modules/
-            tools/
-            zephyr/
-            bootloader/
-            zmk/
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('config/west.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
-            
-      - name: West Init
-        run: west init -l config
-        
-      - name: Configure Git
-        run: |
-          git config --global --add safe.directory '*'
-          git config --global url."https://github.com/".insteadOf git://github.com/
-          
       - name: Setup Shield Files
         run: |
           # Create shield directories
           mkdir -p config/boards/shields/splinky_v2
           mkdir -p config/boards/shields/splinky_v3
           
-          # Copy existing shield files if they exist
-          if [ -f "config/splinky_v2.dtsi" ]; then
-            cp "config/splinky_v2.dtsi" "config/boards/shields/splinky_v2/splinky_v2.dtsi"
-          fi
+          # Copy shield files from repository root if they exist
+          find config -maxdepth 1 -name "*.dtsi" -o -name "*.overlay" -o -name "Kconfig.*" | while read file; do
+            filename=$(basename "$file")
+            case "$filename" in
+              splinky_v2*.dtsi|splinky_v2*.overlay)
+                cp "$file" "config/boards/shields/splinky_v2/"
+                echo "Copied $file to config/boards/shields/splinky_v2/"
+                ;;
+              splinky_v3*.dtsi|splinky_v3*.overlay)
+                cp "$file" "config/boards/shields/splinky_v3/"
+                echo "Copied $file to config/boards/shields/splinky_v3/"
+                ;;
+              Kconfig.*)
+                cp "$file" "config/boards/shields/splinky_v2/"
+                cp "$file" "config/boards/shields/splinky_v3/"
+                echo "Copied $file to both shield directories"
+                ;;
+            esac
+          done
           
-          if [ -f "config/splinky_v2_left.overlay" ]; then
-            cp "config/splinky_v2_left.overlay" "config/boards/shields/splinky_v2/splinky_v2_left.overlay"
-          fi
-          
-          if [ -f "config/splinky_v2_right.overlay" ]; then
-            cp "config/splinky_v2_right.overlay" "config/boards/shields/splinky_v2/splinky_v2_right.overlay"
-          fi
-          
-          if [ -f "config/Kconfig.defconfig" ]; then
-            cp "config/Kconfig.defconfig" "config/boards/shields/splinky_v2/Kconfig.defconfig"
-          fi
-          
-          if [ -f "config/Kconfig.shield" ]; then
-            cp "config/Kconfig.shield" "config/boards/shields/splinky_v2/Kconfig.shield"
-          fi
-          
-          # Copy keymap files if needed
+          # Copy keymap file if it exists
           if [ -f "config/charybdis.keymap" ]; then
             cp "config/charybdis.keymap" "config/splinky_v2.keymap"
             cp "config/charybdis.keymap" "config/splinky_v3.keymap"
+            echo "Copied keymap file"
           fi
           
           # List shield files
           echo "Shield files found:"
           find config/boards/shields -type f | sort
           
-      - name: Clone ZMK Repository
+      - name: Initialize ZMK
         run: |
-          # Direct clone instead of west update to avoid authentication issues
-          git clone --single-branch --branch charybdis-pmw3610 --depth 1 https://github.com/perillamint/zmk.git
+          # Create zmk directory
+          mkdir -p zmk
+          cd zmk
           
-      - name: West Build (${{ matrix.board }} - ${{ matrix.shield }})
+          # Use curl instead of git clone
+          echo "Downloading ZMK repository archive..."
+          curl -L https://github.com/perillamint/zmk/archive/refs/heads/charybdis-pmw3610.zip -o zmk.zip
+          unzip zmk.zip
+          mv zmk-charybdis-pmw3610/* .
+          rmdir zmk-charybdis-pmw3610
+          
+          # Verify download
+          ls -la
+          
+      - name: Build Firmware
         run: |
           # Set ZMK_CONFIG environment variable
           export ZMK_CONFIG="${GITHUB_WORKSPACE}/config"
           cd zmk
+          
+          # Initialize west
           west init -l app
           west update
-          cd app
-          west build -b ${{ matrix.board }} -- -DSHIELD=${{ matrix.shield }} -DZMK_CONFIG="${GITHUB_WORKSPACE}/config"
           
-          # Check and move build artifacts
+          # Build
+          west build -d build -b ${{ matrix.board }} -- -DSHIELD=${{ matrix.shield }} -DZMK_CONFIG="${ZMK_CONFIG}"
+          
+          # Check build result
           if [ -f "build/zephyr/zmk.uf2" ]; then
             mkdir -p "${GITHUB_WORKSPACE}/artifacts"
             cp build/zephyr/zmk.uf2 "${GITHUB_WORKSPACE}/artifacts/${{ matrix.shield }}.uf2"
@@ -141,6 +130,6 @@ jobs:
         with:
           name: build-logs-${{ matrix.shield }}
           path: |
-            zmk/app/build/zephyr/*.log
-            zmk/app/build/CMakeFiles/CMakeError.log
-            zmk/app/build/CMakeFiles/CMakeOutput.log
+            zmk/build/zephyr/*.log
+            zmk/build/CMakeFiles/CMakeError.log
+            zmk/build/CMakeFiles/CMakeOutput.log
