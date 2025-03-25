@@ -6,6 +6,12 @@
 #include <input/processors.dtsi>
 #include <dt-bindings/zmk/input_transform.h>
 
+#define BASE 0
+#define LOWER 1
+#define RAISE 2
+#define POINTER 3
+#define BLUETOOTH 4
+
 / {
     trackball_listener {
         compatible = "zmk,input-listener";
@@ -18,7 +24,7 @@
 
         scroll {
             layers = <RAISE>;
-            input-processors = <&zip_xy_scaler 1 3>, <&zip_xy_to_scroll_mapper>, <&zip_scroll_transform (INPUT_TRANSFORM_Y_INVERT)>;
+            input-processors = <&zip_xy_scaler 1 3>, <&zip_xy_to_scroll_mapper>, <&zip_scroll_transform INPUT_TRANSFORM_Y_INVERT>;
         };
     };
 
