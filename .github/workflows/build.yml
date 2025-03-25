@@ -81,7 +81,7 @@ jobs:
               cp "config/splinky_v2.dtsi" "config/boards/shields/splinky_v2/splinky_v2.dtsi"
             else
               echo "Creating splinky_v2.dtsi from template"
-              cat > "config/boards/shields/splinky_v2/splinky_v2.dtsi" << 'EOF'
+              cat > "config/boards/shields/splinky_v2/splinky_v2.dtsi" << 'DTSI_V2'
 /*
  * Copyright (c) 2022 The ZMK Contributors
  *
@@ -121,7 +121,7 @@ RC(2,0) RC(2,1) RC(2,2) RC(2,3) RC(2,4) RC(2,5) RC(2,6) RC(2,7) RC(2,8) RC(2,9) 
             ;
     };
 };
-EOF
+DTSI_V2
             fi
           fi
           
@@ -131,7 +131,7 @@ EOF
               cp "config/splinky_v2_left.overlay" "config/boards/shields/splinky_v2/splinky_v2_left.overlay"
             else
               echo "Creating splinky_v2_left.overlay from template"
-              cat > "config/boards/shields/splinky_v2/splinky_v2_left.overlay" << 'EOF'
+              cat > "config/boards/shields/splinky_v2/splinky_v2_left.overlay" << 'LEFT_V2'
 /*
  * Copyright (c) 2022 The ZMK Contributors
  *
@@ -151,7 +151,7 @@ EOF
         , <&gpio0 31 GPIO_ACTIVE_HIGH>
         ;
 };
-EOF
+LEFT_V2
             fi
           fi
           
@@ -161,7 +161,7 @@ EOF
               cp "config/splinky_v2_right.overlay" "config/boards/shields/splinky_v2/splinky_v2_right.overlay"
             else
               echo "Creating splinky_v2_right.overlay from template"
-              cat > "config/boards/shields/splinky_v2/splinky_v2_right.overlay" << 'EOF'
+              cat > "config/boards/shields/splinky_v2/splinky_v2_right.overlay" << 'RIGHT_V2'
 /*
  * Copyright (c) 2022 The ZMK Contributors
  *
@@ -185,7 +185,7 @@ EOF
 &splinky_transform_v2 {
     col-offset = <6>;
 };
-EOF
+RIGHT_V2
             fi
           fi
           
@@ -195,7 +195,7 @@ EOF
               cp "config/Kconfig.defconfig" "config/boards/shields/splinky_v2/Kconfig.defconfig"
             else
               echo "Creating Kconfig.defconfig from template"
-              cat > "config/boards/shields/splinky_v2/Kconfig.defconfig" << 'EOF'
+              cat > "config/boards/shields/splinky_v2/Kconfig.defconfig" << 'KCONFIG_DEF_V2'
 # Copyright (c) 2022 The ZMK Contributors
 # SPDX-License-Identifier: MIT
 
@@ -215,7 +215,7 @@ config ZMK_SPLIT
 	default y
 
 endif
-EOF
+KCONFIG_DEF_V2
             fi
           fi
           
@@ -224,7 +224,7 @@ EOF
               cp "config/Kconfig.shield" "config/boards/shields/splinky_v2/Kconfig.shield"
             else
               echo "Creating Kconfig.shield from template"
-              cat > "config/boards/shields/splinky_v2/Kconfig.shield" << 'EOF'
+              cat > "config/boards/shields/splinky_v2/Kconfig.shield" << 'KCONFIG_SH_V2'
 # Copyright (c) 2022 The ZMK Contributors
 # SPDX-License-Identifier: MIT
 
@@ -233,14 +233,14 @@ config SHIELD_SPLINKY_V2_LEFT
 
 config SHIELD_SPLINKY_V2_RIGHT
 	def_bool $(shields_list_contains,splinky_v2_right)
-EOF
+KCONFIG_SH_V2
             fi
           fi
 
           # ========== Splinky v3 Files ==========
           # Main DTSI file
           echo "Creating splinky_v3.dtsi from template"
-          cat > "config/boards/shields/splinky_v3/splinky_v3.dtsi" << 'EOF'
+          cat > "config/boards/shields/splinky_v3/splinky_v3.dtsi" << 'DTSI_V3'
 /*
  * Copyright (c) 2022 The ZMK Contributors
  *
@@ -296,11 +296,11 @@ RC(2,0) RC(2,1) RC(2,2) RC(2,3) RC(2,4) RC(2,5) RC(2,6) RC(2,7) RC(2,8) RC(2,9) 
         switch-layer = <2>;     // Layer for trackball enabled
     };
 };
-EOF
+DTSI_V3
           
           # Left overlay
           echo "Creating splinky_v3_left.overlay from template"
-          cat > "config/boards/shields/splinky_v3/splinky_v3_left.overlay" << 'EOF'
+          cat > "config/boards/shields/splinky_v3/splinky_v3_left.overlay" << 'LEFT_V3'
 /*
  * Copyright (c) 2022 The ZMK Contributors
  *
@@ -365,11 +365,11 @@ EOF
         scroll-interval-ms = <17>;
     };
 };
-EOF
+LEFT_V3
           
           # Right overlay
           echo "Creating splinky_v3_right.overlay from template"
-          cat > "config/boards/shields/splinky_v3/splinky_v3_right.overlay" << 'EOF'
+          cat > "config/boards/shields/splinky_v3/splinky_v3_right.overlay" << 'RIGHT_V3'
 /*
  * Copyright (c) 2022 The ZMK Contributors
  *
@@ -393,11 +393,11 @@ EOF
 &splinky_transform_v3 {
     col-offset = <6>;
 };
-EOF
+RIGHT_V3
           
           # Kconfig files
           echo "Creating Kconfig.defconfig for v3"
-          cat > "config/boards/shields/splinky_v3/Kconfig.defconfig" << 'EOF'
+          cat > "config/boards/shields/splinky_v3/Kconfig.defconfig" << 'KCONFIG_DEF_V3'
 # Copyright (c) 2022 The ZMK Contributors
 # SPDX-License-Identifier: MIT
 
@@ -417,10 +417,10 @@ config ZMK_SPLIT
 	default y
 
 endif
-EOF
+KCONFIG_DEF_V3
           
           echo "Creating Kconfig.shield for v3"
-          cat > "config/boards/shields/splinky_v3/Kconfig.shield" << 'EOF'
+          cat > "config/boards/shields/splinky_v3/Kconfig.shield" << 'KCONFIG_SH_V3'
 # Copyright (c) 2022 The ZMK Contributors
 # SPDX-License-Identifier: MIT
 
@@ -429,7 +429,7 @@ config SHIELD_SPLINKY_V3_LEFT
 
 config SHIELD_SPLINKY_V3_RIGHT
 	def_bool $(shields_list_contains,splinky_v3_right)
-EOF
+KCONFIG_SH_V3
           
           # Make sure the keymap file is in the right location
           if [ -f "config/charybdis.keymap" ] && [ ! -f "config/splinky_v2.keymap" ]; then
