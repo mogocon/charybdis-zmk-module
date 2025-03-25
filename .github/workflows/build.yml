@@ -104,14 +104,6 @@ jobs:
           echo '  self:' >> config/west.yml
           echo '    path: config' >> config/west.yml
           
-          # List shield files
-          echo "Shield files found:"
-          find config/boards/shields -type f | sort
-          
-          # Show the modified west.yml
-          echo "Modified west.yml:"
-          cat config/west.yml
-          
       - name: West Init & Update
         run: |
           # Remove any existing zmk directory to avoid conflicts
@@ -129,21 +121,78 @@ jobs:
             exit 1
           fi
           
-          # Verify key files exist
-          if [ ! -f "zmk/app/CMakeLists.txt" ]; then
-            echo "ERROR: zmk/app/CMakeLists.txt not found after west update!"
+          # List west modules to verify
+          west list
+          
+      - name: Setup Zephyr Environment
+        run: |
+          # Find zephyr location
+          export ZEPHYR_BASE=$(pwd)/zephyr
+          if [ ! -d "$ZEPHYR_BASE" ]; then
+            echo "ERROR: Zephyr base directory not found!"
+            find . -name "zephyr" -type d
             exit 1
           fi
           
-          # Show directory structure
-          echo "ZMK directory structure after west update:"
-          find zmk -type f -name "CMakeLists.txt" | sort
+          echo "ZEPHYR_BASE=${ZEPHYR_BASE}" >> $GITHUB_ENV
+          echo "Using ZEPHYR_BASE=${ZEPHYR_BASE}"
           
-      - name: Build Firmware
+          # Verify key files exist in zephyr base
+          if [ ! -f "${ZEPHYR_BASE}/share/zephyr-package/cmake/ZephyrConfig.cmake" ]; then
+            echo "ZephyrConfig.cmake not found, checking directory structure:"
+            find "${ZEPHYR_BASE}" -name "*Config.cmake" | sort
+          fi
+          
+          # Source zephyr environment if available
+          if [ -f "${ZEPHYR_BASE}/zephyr-env.sh" ]; then
+            source "${ZEPHYR_BASE}/zephyr-env.sh"
+            echo "Sourced zephyr-env.sh"
+          else
+            echo "WARNING: zephyr-env.sh not found!"
+            ls -la "${ZEPHYR_BASE}"
+          fi
+          
+          # Export needed Zephyr paths
+          echo "CMAKE_PREFIX_PATH=${ZEPHYR_BASE}/share/zephyr-package/cmake" >> $GITHUB_ENV
+          echo "PATH=${ZEPHYR_BASE}/scripts:${PATH}" >> $GITHUB_ENV
+          
+          # Export ZMK config path
+          echo "ZMK_CONFIG=${GITHUB_WORKSPACE}/config" >> $GITHUB_ENV
+          
+      - name: Build with ZMK Docker Image
+        uses: zmkfirmware/zephyr-docker-action@v2
+        id: docker_build
+        continue-on-error: true
+        with:
+          arm-toolchain: 1
+          command: |
+            cd $GITHUB_WORKSPACE
+            west build -s zmk/app -p auto -b ${{ matrix.board }} -- -DSHIELD=${{ matrix.shield }} -DZMK_CONFIG="${GITHUB_WORKSPACE}/config"
+      
+      - name: Alternative Native Build 
+        if: steps.docker_build.outcome == 'failure'
         run: |
-          # Build firmware with correct path to app directory
-          west build -s zmk/app -p auto -b ${{ matrix.board }} -- -DSHIELD=${{ matrix.shield }} -DZMK_CONFIG="${GITHUB_WORKSPACE}/config"
+          echo "Docker build failed, trying native build..."
           
+          # Set up Zephyr workspace
+          python -m pip install --upgrade pip setuptools wheel cmake west
+          pip install -r zephyr/scripts/requirements.txt
+          
+          # Initialize and update west
+          cd $GITHUB_WORKSPACE
+          export ZEPHYR_BASE=$GITHUB_WORKSPACE/zephyr
+          
+          # Print environment for debugging
+          echo "ZEPHYR_BASE: $ZEPHYR_BASE"
+          echo "PWD: $(pwd)"
+          echo "Python: $(which python)"
+          echo "West: $(which west)"
+          
+          # Try native build with explicit paths
+          west build -s zmk/app -p auto -b ${{ matrix.board }} -- -DSHIELD=${{ matrix.shield }} -DZMK_CONFIG="${GITHUB_WORKSPACE}/config" -DZEPHYR_BASE="${ZEPHYR_BASE}"
+          
+      - name: Process Build Results
+        run: |
           # Check build result
           if [ -f "build/zephyr/zmk.uf2" ]; then
             mkdir -p artifacts
