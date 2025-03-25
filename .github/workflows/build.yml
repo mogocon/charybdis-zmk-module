@@ -88,29 +88,46 @@ jobs:
           echo "Shield files found:"
           find config/boards/shields -type f | sort
           
-      - name: Initialize ZMK
+      - name: Manually Download ZMK
         run: |
-          # Initialize west workspace
-          west init -l config
+          # Download the ZIP file directly using wget
+          wget https://github.com/perillamint/zmk/archive/refs/heads/charybdis-pmw3610.zip -O zmk.zip
           
-          # Set up west configuration
-          west config --global update.fetch always
+          # Extract the ZIP file
+          unzip zmk.zip
           
-          # Update west modules
+          # Rename the extracted folder to 'zmk'
+          mv zmk-charybdis-pmw3610 zmk
+          
+          # Check the contents
+          ls -la zmk
+          
+      - name: West Setup
+        run: |
+          # Initialize west with an empty manifest for zephyr dependencies
+          mkdir -p zmk/app
+          cd zmk
+          west init -l app
+          
+          # Update west to fetch dependencies
           west update
           
       - name: Build Firmware
         run: |
+          # Configure build environment
+          cd zmk
+          
           # Build firmware
-          west build -b ${{ matrix.board }} -- -DSHIELD=${{ matrix.shield }} -DZMK_CONFIG="${GITHUB_WORKSPACE}/config"
+          west build -p auto -b ${{ matrix.board }} app -- -DSHIELD=${{ matrix.shield }} -DZMK_CONFIG="${GITHUB_WORKSPACE}/config"
           
           # Check build result
           if [ -f "build/zephyr/zmk.uf2" ]; then
-            mkdir -p artifacts
-            cp build/zephyr/zmk.uf2 "artifacts/${{ matrix.shield }}.uf2"
+            mkdir -p "${GITHUB_WORKSPACE}/artifacts"
+            cp build/zephyr/zmk.uf2 "${GITHUB_WORKSPACE}/artifacts/${{ matrix.shield }}.uf2"
             echo "Build successful for ${{ matrix.shield }}"
           else
             echo "Build failed for ${{ matrix.shield }}"
+            find build -name "*.log" -type f -exec cat {} \;
             exit 1
           fi
           
@@ -126,6 +143,6 @@ jobs:
         with:
           name: build-logs-${{ matrix.shield }}
           path: |
-            build/zephyr/*.log
-            build/CMakeFiles/CMakeError.log
-            build/CMakeFiles/CMakeOutput.log
+            zmk/build/zephyr/*.log
+            zmk/build/CMakeFiles/CMakeError.log
+            zmk/build/CMakeFiles/CMakeOutput.log
